@@ -16,6 +16,11 @@
       padding: 0;
     }
 
+    ::selection {
+      background-color: #09091a;
+      color: #fff;
+    }
+
     .commutes {
       align-content: stretch;
       color: #09091a;
@@ -601,8 +606,8 @@
     <div id="pac-container">
       <input id="pac-inputStart" type="text" placeholder="Enter starting location" onkeyup="reload()" />
       <div id="routes">
-        <div id="time-route">Best for time: NAN</div>
-        <div id="emissions-route">Best for emissions: NAN</div>
+        <div id="time-route">Best for time: Loading...</div>
+        <div id="emissions-route">Best for emissions: Loading...</div>
       </div>
       <div id="desc"><b>Insights about the journey</b></div>
       <div id="gpt-desc">...</div>
@@ -831,11 +836,19 @@
   <script>
     'use strict';
 
+    /**
+     * PriorityQueue class implementation.
+     */
     class PriorityQueue {
       constructor() {
         this.values = [];
       }
 
+      /**
+       * Adds a new value to the priority queue and then sorts it.
+       * @param {any} val - The value to be enqueued.
+       * @param {number} priority - The priority of the value.
+       */
       enqueue(val, priority) {
         this.values.push({
           val,
@@ -844,19 +857,35 @@
         this.sort();
       }
 
+      /**
+       * Removes and returns the value with the highest priority.
+       * @returns {Object} The dequeued value.
+       */
       dequeue() {
         return this.values.shift();
       }
 
+      /**
+       * Checks if the priority queue is empty.
+       * @returns {boolean} True if empty, false otherwise.
+       */
       isEmpty() {
         return this.values.length === 0;
       }
 
+      /**
+       * Sorts the queue based on priority.
+       */
       sort() {
         this.values.sort((a, b) => a.priority - b.priority);
       }
     }
 
+    /**
+     * Modified enqueue method to check for duplicates.
+     * If a value already exists with a higher priority, update the priority.
+     * Otherwise, add as usual.
+     */
     PriorityQueue.prototype.enqueue = function (val, priority) {
       const existingIdx = this.values.findIndex((el) => el.val === val);
 
@@ -875,12 +904,25 @@
     };
 
 
+    /**
+     * Node class for representing individual nodes in the graph.
+     */
     class Node {
+      /**
+       * Constructor initializes the node with a name and an empty adjacents list.
+       * @param {string} name - Name of the node.
+       */
       constructor(name) {
         this.name = name;
         this.adjacents = [];
       }
 
+      /**
+       * Adds an adjacent node along with distance and transport details.
+       * @param {Node} node - The adjacent node.
+       * @param {number} distance - Distance to the adjacent node.
+       * @param {string} transport - Mode of transport to the adjacent node.
+       */
       addAdjacent(node, distance, transport) {
         const {
           time,
@@ -895,22 +937,47 @@
       }
     }
 
+    /**
+     * Graph class to represent a set of nodes and edges.
+     */
     class Graph {
+      /**
+       * Constructor initializes an empty nodes dictionary.
+       */
       constructor() {
         this.nodes = {};
       }
 
+      /**
+       * Adds a node to the graph.
+       * @param {string} name - Name of the node.
+       */
       addNode(name) {
         if (!this.nodes[name]) {
           this.nodes[name] = new Node(name);
         }
       }
 
+      /**
+       * Adds an edge between two nodes in the graph.
+       * @param {string} from - Starting node.
+       * @param {string} to - Ending node.
+       * @param {number} distance - Distance between nodes.
+       * @param {string} transport - Mode of transport between nodes.
+       */
+
       addEdge(from, to, distance, transport) {
         this.nodes[from].addAdjacent(this.nodes[to], distance, transport);
       }
     }
 
+    /**
+     * Calculates time and emissions based on distance and transport type.
+     * @param {number} distance - Distance.
+     * @param {string} transport - Mode of transport.
+     * @param {boolean} [isTransfer=false] - Indicates if this is a transfer.
+     * @returns {Object} An object with calculated time and emission.
+     */
     function calculateTimeAndEmission(distance, transport, isTransfer = false) {
       let time = 0;
       let emission = 0;
@@ -919,8 +986,8 @@
       const taxiWaitTime = 0.15; // Assuming average wait time is 9 minutes
       const busWaitTime = 0.25; // Assuming average wait time is 15 minutes
       const trainWaitTime = 0.3; // Assuming average wait time is 18 minutes
-      const trainBoardingTime = 0.0833; // 15 minutes
-      const trainExitingTime = 0.0833; // 15 minutes
+      const trainBoardingTime = 0.0833; // 5 minutes
+      const trainExitingTime = 0.0833; // 5 minutes
       const trainStopTime = (distance / 5) * 1;
       const busBoardingTime = 0.033; // 2 minutes
       const walkToStationTime = 0.1; // 6 minutes to reach station
@@ -930,24 +997,17 @@
           time = distance / 40 + taxiWaitTime; // Base speed 40 km/hr
           if (isTransfer) time += 0.1; // Additional 6 minutes for transfer
           emission = distance * 0.35 + 0.1; // 0.1 for idling
-          // console.log("DRIVING*********** " + time + " " + emission)
           break;
 
         case 'TRANSIT':
-          time = distance / 90 + trainBoardingTime + trainExitingTime + trainStopTime; // Base speed 80 km/hr
+          time = distance / 90 + trainBoardingTime + trainExitingTime +
+            trainStopTime; // Base speed 90 km/hr plus time to board and exit the train plus time that the tain stops at stations
           if (isTransfer) time += walkToStationTime * 2; // Walking to and from the station
           emission = distance * 0.1;
-          // console.log("TRANSIT*********** " + time + " " + emission)
           break;
 
-          /*case 'Rideshare':
-            time = distance / 50 + taxiWaitTime;  // Base speed 50 km/hr, same wait as a taxi
-            if (isTransfer) time += 0.1; // Additional 6 minutes for transfer
-            emission = distance * 0.22;
-            break;*/
-
         case 'WALKING':
-          if (distance < 3) {
+          if (distance < 3) { //Only feasble if distance is less than 3km
             time = distance / 5; // Base speed 5 km/hr
             emission = 0;
           } else {
@@ -957,7 +1017,7 @@
           break;
 
         case 'BICYCLING':
-          if (distance < 7) {
+          if (distance < 7) { //Only feasble if distance is less than 7km
             time = distance / 10; // Base speed 15 km/hr
             emission = 0;
           } else {
@@ -968,7 +1028,7 @@
           break;
 
         default:
-          throw new Error("Unknown transport type");
+          throw new Error("Unknown transport type"); //Error Message
       }
 
       return {
@@ -977,7 +1037,13 @@
       };
     }
 
-
+    /**
+     * Helper function to backtrack the shortest path from start to end.
+     * @param {Object} previous - Dictionary of predecessors for each node.
+     * @param {string} start - Starting node name.
+     * @param {string} end - Ending node name.
+     * @returns {Array} Array representing the path from start to end.
+     */
     const extractPath = (previous, start, end) => {
       let node = end; // Assuming `end` is a string representing the node name
       const path = [];
@@ -988,17 +1054,9 @@
       return path.reverse();
     };
 
-    const normalize = (value, minValue, maxValue) => {
-      if (!isFinite(minValue) || !isFinite(maxValue) || minValue === maxValue) {
-        return value; // or some other default value
-      }
-      return (value - minValue) / (maxValue - minValue);
-    };
-
-    const normalizeSum = (value, sum) => {
-      return value / sum;
-    };
-
+    /**
+     Functions to Normalize Time and Emissions using base values determined using testing
+     */
     const normalizeConstantTime = (value) => {
       return value / 0.5;
     };
@@ -1007,37 +1065,25 @@
       return value / 1.5;
     };
 
-
+    /**
+     * Implementation of Dijkstra's algorithm for shortest path in a graph.
+     * Focus can be either on time or emissions.
+     * @param {Graph} graph - The graph to be processed.
+     * @param {string} start - The starting node.
+     * @param {string} end - The destination node.
+     * @param {string} focus - Can be either 'time' or other (defaulting to emissions).
+     * @returns {Object} The shortest path details including path, distance, and mode of transport.
+     */
     const dijkstra = (graph, start, end, focus) => {
-      let maxTime = 0;
-      let minTime = Infinity;
-      let maxEmission = 0;
-      let minEmission = Infinity;
-
-      let sumTime = 0;
-      let sumEmmissions = 0;
-
-      // Finding max and min values for time and emission
-      for (let node in graph.nodes) {
-        for (let neighbor of graph.nodes[node].adjacents) {
-          if (neighbor.time > maxTime) maxTime = neighbor.time;
-          if (neighbor.time < minTime) minTime = neighbor.time;
-          if (neighbor.emission > maxEmission) maxEmission = neighbor.emission;
-          if (neighbor.emission < minEmission) minEmission = neighbor.emission;
-
-          sumTime += neighbor.time;
-          sumEmmissions += neighbor.emission;
-        }
-      }
-
+      // Initialize objects to keep track of distances, previous nodes, and transport modes.
       const distances = {};
       const previous = {};
       const nodes = new PriorityQueue();
       const visited = new Set();
       const transportUsed = {};
 
+      // Set weighting factors based on whether the focus is on time or emission.
       let weightingFactorTime, weightingFactorEmission;
-
       if (focus === "time") {
         weightingFactorTime = 0.8;
         weightingFactorEmission = 0.2;
@@ -1046,6 +1092,7 @@
         weightingFactorEmission = 0.8;
       }
 
+      // Initialize distances and priority queue.
       for (let node in graph.nodes) {
         if (node === start) {
           distances[node] = 0;
@@ -1057,59 +1104,49 @@
         previous[node] = null;
       }
 
+      // Dijkstra's algorithm main loop.
       while (!nodes.isEmpty()) {
+        // Get the node with the smallest distance value.
         const minNode = nodes.dequeue().val;
 
+        // Skip if already visited.
         if (visited.has(minNode)) continue;
 
+        // Mark the node as visited.
         visited.add(minNode);
 
+        // If we've reached the end node, exit the loop.
         if (minNode === end) {
-          //console.log('End node reached. Breaking out of loop.');
-          //console.log('Current state of `previous`:', previous);
           break;
         }
 
-        //console.log('HERE 1');
+        // Process all adjacent nodes of the current node.
         for (let neighbor of graph.nodes[minNode].adjacents) {
-          //console.log('HERE 2');
-          //console.log('Inputs to normalize:', neighbor.time, minTime, maxTime, neighbor.emission, minEmission, maxEmission);
-
-          //const normalizedTime = normalize(neighbor.time, minTime, maxTime);
-          //const normalizedEmission = normalize(neighbor.emission, minEmission, maxEmission);
-
-          //const normalizedTime = normalizeSum(neighbor.time, sumTime);
-          //const normalizedEmission = normalizeSum(neighbor.emission, sumEmmissions);
-
+          // Normalize time and emission values for the edge between current node and neighbor.
           const normalizedTime = normalizeConstantTime(neighbor.time);
           const normalizedEmission = normalizeConstantEmissions(neighbor.emission);
 
-          // console.log("TRANSPORT:  " + neighbor.transport);
-          // console.log("normalizedTime:  " + normalizedTime);
-          // console.log("normalizedEmissions:  " + normalizedEmission);
-
-          // Check initial distance array and weighting factors
-          //console.log('Initial distances array:', distances);
-          //console.log('Weighting factors:', weightingFactorTime, weightingFactorEmission);
-
+          // Calculate the edge weight based on normalized time and emission.
           const weight = (normalizedTime * weightingFactorTime) + (normalizedEmission * weightingFactorEmission);
+
+          // Calculate the new tentative distance to the neighbor.
           const newDistance = distances[minNode] + weight;
 
+          // Update if the new distance is smaller than the previous one.
           if (newDistance < distances[neighbor.node.name]) {
             distances[neighbor.node.name] = newDistance;
             previous[neighbor.node.name] = minNode;
             transportUsed[neighbor.node.name] = neighbor.transport;
             nodes.enqueue(neighbor.node.name, newDistance);
-          } else {
-            /* console.log(
-              `No update for node ${neighbor.node.name}. Current: ${distances[neighbor.node.name]}, New: ${newDistance}`
-              ); */
           }
         }
       }
+
+      // Extract the final path and transport modes used.
       const finalPath = extractPath(previous, start, end);
       const finalTransport = finalPath.slice(1).map(node => transportUsed[node]);
 
+      // Return the computed distance, path, and transport modes.
       return {
         distance: distances[end],
         path: finalPath,
@@ -1244,7 +1281,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer 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`
+          'Authorization': `Bearer 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`
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
@@ -2258,16 +2295,21 @@
       console.log("Best route for emission:", bestForEmission.transport[0]);
       // console.log("Best route for emission path:", JSON.stringify(bestForEmission.path, null, 2));
 
-      let result = "";
-      if (bestForEmission.transport[0] == "BICYCLING") result = "cycling or walking"
-      else result = bestForEmission.transport[0].toLowerCase();
+      let resultEmission = "";
+      let resultTime = "";
+
+      if (bestForEmission.transport[0] == "BICYCLING" && Number(dist.slice(0, 3)) < 3) resultEmission =
+        "cycling/walking";
+      else if (bestForEmission.transport[0] == "TRANSIT") resultEmission = "public transport"
+      else resultEmission = bestForEmission.transport[0].toLowerCase();
+
+      if (bestForTime.transport[0] == "TRANSIT") resultTime = "public transport"
+      else resultTime = bestForTime.transport[0].toLowerCase();
 
       let timeRoute = document.getElementById("time-route");
       let emissionsRoute = document.getElementById("emissions-route");
-      timeRoute.innerText = "Best for time: " + bestForTime.transport[0].toLowerCase();
-      emissionsRoute.innerText = "Best for emissions: " + result;
-
-
+      timeRoute.innerText = "Best for time: " + resultTime;
+      emissionsRoute.innerText = "Best for emissions: " + resultEmission;
 
       return `
         <div class="destination" tabindex="0" role="button">
@@ -2332,4 +2374,5 @@
     async defer></script>
 
 </body>
+
 </html>
