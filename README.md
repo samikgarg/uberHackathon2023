@@ -12,9 +12,10 @@ This application is designed to assist users in making informed travel decisions
 
 ## How to Use
 1. [Download](#) or clone the repository.
-2. Open `index.html` in a web browser.
-3. Enter the starting location and choose your preferred mode of travel.
-4. Enter a valid destination to get detailed information and insights.
+2. Obtain an OpenAI API key and add it to line `1284`.
+3. Open `index.html` in a web browser.
+4. Enter the starting location and choose your preferred mode of travel.
+5. Enter a valid destination to get detailed information and insights.
 
 ## Dependencies
 - Google Maps API
