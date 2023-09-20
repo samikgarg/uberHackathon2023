@@ -1276,12 +1276,12 @@
           "content": constructJourneyPrompt(start, destination, distance, transport)
         }
       ];
-
+      
       const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer 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`
+          'Authorization': `Bearer API_KEY_HERE`
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
