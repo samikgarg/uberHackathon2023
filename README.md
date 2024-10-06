@@ -27,5 +27,5 @@ This application is designed to assist users in making informed travel decisions
 - OpenAI API
 
 ## Collaborators
-- Samik Garg
-- Shashwat Bhandari
+- Samik Garg (GitHub: samikgarg)
+- Shashwat Bhandari (GitHub: shashwatb14)
