@@ -25,3 +25,7 @@ This application is designed to assist users in making informed travel decisions
 - HTML, CSS, JavaScript
 - Google Maps API
 - OpenAI API
+
+## Collaborators
+- Samik Garg
+- Shashwat Bhandari
